@@ -1,0 +1,3 @@
+
+default:
+	@./sync.sh
