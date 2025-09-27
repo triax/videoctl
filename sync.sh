@@ -77,7 +77,61 @@ function copy_video_clips() {
     fi
 }
 
+function show_help() {
+    BLUE="\033[94m"
+    GREEN="\033[92m"
+    YELLOW="\033[93m"
+    CYAN="\033[96m"
+    MAGENTA="\033[95m"
+    RESET="\033[0m"
+    BOLD="\033[1m"
+
+    echo -e "${CYAN}${BOLD}🎬 ビデオ同期ツール v1.0 🎬${RESET}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    echo
+    echo -e "${BOLD}使用方法:${RESET}"
+    echo -e "  $0 [オプション]"
+    echo
+    echo -e "${BOLD}オプション:${RESET}"
+    echo -e "  -h, --help    このヘルプを表示"
+    echo
+    echo -e "${BOLD}説明:${RESET}"
+    echo -e "  このスクリプトは接続されたビデオカメラデバイスを自動検出し、"
+    echo -e "  ビデオファイルをローカルフォルダに同期します。"
+    echo
+    echo -e "${BOLD}対応デバイス:${RESET}"
+    echo -e "  ${MAGENTA}🐷 PINK:${RESET}  $SERIAL_PINK"
+    echo -e "  ${CYAN}🐻‍❄️ WHITE:${RESET} $SERIAL_WHITE"
+    echo
+    echo -e "${BOLD}動作:${RESET}"
+    echo -e "  1. 接続されたUSBデバイスをスキャン"
+    echo -e "  2. 対応デバイスのビデオファイルを検出"
+    echo -e "  3. ${YELLOW}pink${RESET} または ${YELLOW}white${RESET} フォルダに同期"
+    echo -e "  4. デバイスを安全に取り出し"
+    echo
+    echo -e "${BOLD}注意:${RESET}"
+    echo -e "  • 既存のフォルダ内容はクリーンアップされます"
+    echo -e "  • ファイル転送中はデバイスを取り外さないでください"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+}
+
 function main() {
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            *)
+                echo -e "\033[91m❌ 不明なオプション: $1\033[0m"
+                echo -e "ヘルプを表示するには: $0 --help"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
     BLUE="\033[94m"
     GREEN="\033[92m"
     YELLOW="\033[93m"
@@ -153,4 +207,4 @@ function eject_device() {
     return 0
 }
 
-main
+main "$@"
