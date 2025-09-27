@@ -40,10 +40,18 @@ function copy_video_clips() {
     if [[ -d "$source_path" ]]; then
         echo -e "${COLOR}${ICON} [$device_color]${RESET} 📹 デバイスを検出しました！ ${CYAN}$source_path${RESET}"
 
-        if [[ -d "$target_folder" ]]; then
-            echo -e "${COLOR}${ICON} [$device_color]${RESET} 🧹 既存フォルダ ${YELLOW}$target_folder${RESET} をクリーンアップ中..."
-            rm -rf "${target_folder:?}/"*
-            echo -e "${COLOR}${ICON} [$device_color]${RESET} ✨ クリーンアップ完了！"
+        if [[ -d "$target_folder" ]] && [[ -n "$(ls -A "$target_folder" 2>/dev/null)" ]]; then
+            echo -e "${COLOR}${ICON} [$device_color]${RESET} ⚠️  既存フォルダ ${YELLOW}$target_folder${RESET} にファイルが存在します"
+            echo -e "${COLOR}${ICON} [$device_color]${RESET} 📁 クリーンアップしてもよろしいですか？ (y + Enter): "
+            read -r response
+            if [[ "$response" == "y" || "$response" == "Y" ]]; then
+                echo -e "${COLOR}${ICON} [$device_color]${RESET} 🧹 既存フォルダ ${YELLOW}$target_folder${RESET} をクリーンアップ中..."
+                rm -rf "${target_folder:?}/"*
+                echo -e "${COLOR}${ICON} [$device_color]${RESET} ✨ クリーンアップ完了！"
+            else
+                echo -e "${COLOR}${ICON} [$device_color]${RESET} ❌ クリーンアップをキャンセルしました"
+                return 1
+            fi
         fi
 
         mkdir -p "$target_folder"
