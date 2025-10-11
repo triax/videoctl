@@ -74,12 +74,15 @@ function check_file_naming() {
             # %05d形式の期待されるファイル名を生成
             expected_name=$(printf "%05d.%s" "$counter" "$extension")
 
+            # mtime を取得
+            mtime=$(stat -f "%Sm" -t "%Y/%m/%d %H:%M:%S" "$file_path" 2>/dev/null)
+
             # 現在のファイル名と期待されるファイル名を比較
             if [[ "$original_name" == "$expected_name" ]]; then
-                echo -e "  ${GREEN}✓${RESET} $original_name ${GREEN}(正しい順序)${RESET}"
+                echo -e "  ${GREEN}✓${RESET} $original_name ${GREEN}(正しい順序)${RESET}\t| $mtime"
                 correct_count=$((correct_count + 1))
             else
-                echo -e "  ${RED}✗${RESET} $original_name ${YELLOW}→ 期待: $expected_name${RESET}"
+                echo -e "  ${RED}✗${RESET} $original_name ${YELLOW}→ 期待: $expected_name${RESET}\t| ${YELLOW}$mtime${RESET}"
                 incorrect_count=$((incorrect_count + 1))
             fi
 
