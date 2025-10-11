@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./video check:*)",
+      "Bash(./video rename:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
