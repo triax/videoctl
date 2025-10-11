@@ -1,25 +1,27 @@
 # CLAUDE.md
 
-このファイルは、このリポジトリで作業する際のClaude Code (claude.ai/code) へのガイダンスを提供します。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## プロジェクト概要
 
-接続されたビデオカメラデバイスを自動検出し、シリアル番号で識別して、ビデオクリップをローカルフォルダに同期するビデオカメラ同期ツール（videoctl）です。ファイル変更時刻に基づく自動リネーム機能付き。
+接続されたビデオカメラデバイスを自動検出し、シリアル番号で識別して、ビデオクリップをローカルフォルダに同期するビデオカメラ同期ツール（videoctl）です。ファイル変更時刻（mtime）に基づく自動リネーム機能付き。
 
 ## コアアーキテクチャ
 
 ### 主要コンポーネント
 
-- **main.sh**: 全機能を含む単一のbashスクリプト
+- **video**: 全機能を含む単一のbashスクリプト（実行ファイル）
 - **pink/**: PINKデバイス用ビデオの保存先ディレクトリ (シリアル: 6CD0502F3121)
 - **white/**: WHITEデバイス用ビデオの保存先ディレクトリ (シリアル: 6D6C904DF4D9)
+- **.claude/commands/fix.md**: カスタムスラッシュコマンド `/fix` の定義
 
 ### 主要関数
 
 - `get_device_info_by_serial()`: system_profilerを使用してシリアル番号でUSBデバイスを検出
-- `copy_video_clips()`: デバイス検出、rsync/cpフォールバックでのファイルコピー、自動リネームを処理
-- `rename_files_by_date()`: ファイルを変更時刻でソートし%05d形式でリネーム (00000.MTS, 00001.MTS等)
-- `eject_device()`: 同期後にマウントされたボリュームを安全に取り出し
+- `check_file_naming()`: ファイル名がmtimeの順序で正しく命名されているかチェック（video:21）
+- `rename_files_by_date()`: ファイルをmtimeでソートし%05d形式でリネーム (00000.MTS, 00001.MTS等)（video:105）
+- `copy_video_clips()`: デバイス検出、rsync/cpフォールバックでのファイルコピー、リネーム確認を処理（video:183）
+- `eject_device()`: 同期後にマウントされたボリュームを安全に取り出し（video:393）
 
 ### デバイス設定
 
@@ -34,34 +36,52 @@
 ### 基本的な使用法
 ```bash
 # フル同期プロセスを実行（デバイス検出とファイルコピー）
-./main.sh
+./video
 
 # ヘルプ表示
-./main.sh --help
+./video --help
 
-# 既存ディレクトリ内のファイルのみリネーム
-./main.sh --rename pink
-./main.sh --rename white
-./main.sh --rename /path/to/directory
+# ファイル名が正しい順序かチェック
+./video check pink
+./video check white
+
+# 既存ディレクトリ内のファイルをmtime順でリネーム
+./video rename pink
+./video rename white
+./video rename /path/to/directory
+```
+
+### カスタムスラッシュコマンド
+```bash
+# Claude Code内で使用可能
+/fix    # pink/whiteを自動チェック＆リネーム（リネーム後の再チェック含む）
 ```
 
 ### 開発用コマンド
 ```bash
 # スクリプトを実行可能にする（必要に応じて）
-chmod +x main.sh
-
-# Makefile経由で実行（レガシー、古いsync.shを指している）
-make
+chmod +x video
 
 # コピーせずにデバイス検出をテスト
 system_profiler SPUSBDataType | grep -A 20 "6CD0502F3121\|6D6C904DF4D9"
 ```
 
-## ファイル名規則
+## 重要な仕様
 
-ファイルは変更時刻に基づいて昇順で自動リネームされます：
+### ファイル名規則
+ファイルはmtime（modification time）に基づいて昇順で自動リネームされます：
 - 元のファイル名: `00001.MTS`, `00023.MTS`, `00045.MTS`
-- リネーム後: `00000.MTS`, `00001.MTS`, `00002.MTS` (date modifiedでソート済み)
+- リネーム後: `00000.MTS`, `00001.MTS`, `00002.MTS` (mtimeでソート済み)
+
+### mtimeの保持
+`mv`コマンドでリネームする際、**mtimeは保持されます**。これにより：
+- リネーム後も時系列の整合性が保たれる
+- 再度`./video check`を実行しても正しい順序と判定される
+- 何度でも安全にチェック＆リネームを繰り返せる
+
+### ユーザー確認プロンプト
+- ファイルコピー後のリネーム実行前にユーザー確認 (`y + Enter`)
+- 既存フォルダのクリーンアップ前にユーザー確認
 
 ## コミットメッセージスタイル
 
@@ -69,11 +89,5 @@ system_profiler SPUSBDataType | grep -A 20 "6CD0502F3121\|6D6C904DF4D9"
 - `機能追加:` 新機能の場合
 - `改善:` 改善の場合
 - `リファクタ:` リファクタリングの場合
-- `初期実装:` 初期実装の場合
-
-## エラーハンドリング
-
-スクリプトには既存フォルダのクリーンアップ確認と適切なフォールバックが含まれています：
-- 進行状況表示付きrsync、利用できない場合はcpにフォールバック
-- 使用中ボリュームのエラーハンドリング付き安全な取り出し
-- デバイスタイプとステータスメッセージのカラーコード出力
+- `修正:` バグ修正の場合
+- `ドキュメント追加:` ドキュメント追加の場合

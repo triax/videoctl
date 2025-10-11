@@ -23,35 +23,49 @@ videoctlは、接続されたビデオカメラデバイスを自動検出し、
 ### 基本的な同期
 
 ```bash
-./main.sh
+./video
 ```
 
 デバイスを接続してこのコマンドを実行すると、自動的にデバイスを検出し、ファイルを適切なフォルダ（pink または white）に転送します。
+
+### ファイル名のチェック
+
+既存のディレクトリ内のファイルが正しい順序で命名されているか確認：
+
+```bash
+./video check pink
+./video check white
+```
 
 ### ファイルのリネームのみ
 
 既存のディレクトリ内のファイルを撮影時刻順でリネームしたい場合：
 
 ```bash
-./main.sh --rename pink
-./main.sh --rename white
-./main.sh --rename /path/to/directory
+./video rename pink
+./video rename white
+./video rename /path/to/directory
 ```
 
 ### ヘルプ表示
 
 ```bash
-./main.sh --help
+./video --help
 ```
 
 ## ディレクトリ構造
 
 ```
 videoctl/
-├── main.sh           # メインスクリプト
-├── pink/             # PINKデバイスからの動画ファイル
-├── white/            # WHITEデバイスからの動画ファイル
-└── README.md         # このファイル
+├── video                      # メインスクリプト（実行ファイル）
+├── pink/                      # PINKデバイスからの動画ファイル
+├── white/                     # WHITEデバイスからの動画ファイル
+├── .claude/
+│   ├── commands/
+│   │   └── fix.md             # /fixカスタムスラッシュコマンド定義
+│   └── settings.local.json    # Claude Code設定
+├── CLAUDE.md                  # Claude Code向けガイダンス
+└── README.md                  # このファイル
 ```
 
 ## ファイル名の変換例
