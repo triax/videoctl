@@ -140,9 +140,15 @@ function copy_video_clips() {
             done
         fi
 
-        # Rename files based on date modified with %05d format
-        echo -e "${COLOR}${ICON} [$device_color]${RESET} 🔄 ファイルをdate modifiedでリネーム中..."
-        rename_files_by_date "$target_folder" "$device_color"
+        # Ask user if they want to rename files
+        echo -e "${COLOR}${ICON} [$device_color]${RESET} 🔄 ファイルをdate modifiedでリネームしますか？ (y + Enter): "
+        read -r rename_response
+        if [[ "$rename_response" == "y" || "$rename_response" == "Y" ]]; then
+            echo -e "${COLOR}${ICON} [$device_color]${RESET} 🔄 ファイルをdate modifiedでリネーム中..."
+            rename_files_by_date "$target_folder" "$device_color"
+        else
+            echo -e "${COLOR}${ICON} [$device_color]${RESET} ⏭️  リネームをスキップしました"
+        fi
         echo -e "${COLOR}${ICON} [$device_color]${RESET} 🎉 転送完了！ 合計 ${GREEN}$count${RESET} ファイルをコピーしました！"
         return 0
     else
