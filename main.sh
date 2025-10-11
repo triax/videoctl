@@ -18,6 +18,87 @@ function get_device_info_by_serial() {
     echo "$info"
 }
 
+function check_file_naming() {
+    local target_folder=$1
+    local device_color=$2
+
+    # カラーコードの設定
+    if [[ "$device_color" == "PINK" ]]; then
+        COLOR="\033[95m"  # ピンク
+        ICON="🐷"
+    else
+        COLOR="\033[97m"  # 白
+        ICON="🐻‍❄️"
+    fi
+    RESET="\033[0m"
+    GREEN="\033[92m"
+    CYAN="\033[96m"
+    YELLOW="\033[93m"
+    RED="\033[91m"
+
+    # 一時的な配列でファイルとその変更時刻をペアにして格納
+    declare -a files_with_times=()
+
+    # ファイルの変更時刻を取得してソート
+    while IFS= read -r -d '' file; do
+        if [[ -f "$file" ]]; then
+            mod_time=$(stat -f "%m" "$file" 2>/dev/null)
+            if [[ -n "$mod_time" ]]; then
+                files_with_times+=("$mod_time:$file")
+            fi
+        fi
+    done < <(find "$target_folder" -type f -print0)
+
+    # 変更時刻でソート
+    local sorted_files=()
+    if [[ ${#files_with_times[@]} -gt 0 ]]; then
+        IFS=$'\n' sorted_files=($(sort -n <<< "${files_with_times[*]}"))
+        unset IFS
+    fi
+
+    # チェック処理
+    local counter=0
+    local correct_count=0
+    local incorrect_count=0
+
+    echo -e "${COLOR}${ICON} [$device_color]${RESET} 📋 ファイル名チェック結果:"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+
+    if [[ ${#sorted_files[@]} -gt 0 ]]; then
+        for entry in "${sorted_files[@]}"; do
+            # エントリーからファイルパスを抽出
+            file_path="${entry#*:}"
+            original_name=$(basename "$file_path")
+            extension="${original_name##*.}"
+
+            # %05d形式の期待されるファイル名を生成
+            expected_name=$(printf "%05d.%s" "$counter" "$extension")
+
+            # 現在のファイル名と期待されるファイル名を比較
+            if [[ "$original_name" == "$expected_name" ]]; then
+                echo -e "  ${GREEN}✓${RESET} $original_name ${GREEN}(正しい順序)${RESET}"
+                correct_count=$((correct_count + 1))
+            else
+                echo -e "  ${RED}✗${RESET} $original_name ${YELLOW}→ 期待: $expected_name${RESET}"
+                incorrect_count=$((incorrect_count + 1))
+            fi
+
+            counter=$((counter + 1))
+        done
+    fi
+
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    echo -e "${COLOR}${ICON} [$device_color]${RESET} 📊 合計: ${CYAN}${counter}${RESET} ファイル"
+    echo -e "${COLOR}${ICON} [$device_color]${RESET} ${GREEN}✓${RESET} 正しい: ${GREEN}${correct_count}${RESET}"
+    echo -e "${COLOR}${ICON} [$device_color]${RESET} ${RED}✗${RESET} 不正: ${RED}${incorrect_count}${RESET}"
+
+    if [[ $incorrect_count -eq 0 ]]; then
+        echo -e "${COLOR}${ICON} [$device_color]${RESET} ${GREEN}🎉 すべてのファイルが正しい順序で命名されています！${RESET}"
+    else
+        echo -e "${COLOR}${ICON} [$device_color]${RESET} ${YELLOW}⚠️  リネームが必要なファイルがあります${RESET}"
+    fi
+}
+
 function rename_files_by_date() {
     local target_folder=$1
     local device_color=$2
@@ -171,11 +252,13 @@ function show_help() {
     echo
     echo -e "${BOLD}使用方法:${RESET}"
     echo -e "  $0 [オプション]"
-    echo -e "  $0 --rename <ディレクトリ>"
+    echo -e "  $0 rename <ディレクトリ>"
+    echo -e "  $0 check <ディレクトリ>"
     echo
     echo -e "${BOLD}オプション:${RESET}"
     echo -e "  -h, --help           このヘルプを表示"
-    echo -e "  --rename <dir>       指定ディレクトリ内のファイルをdate modifiedで%05d形式にリネーム"
+    echo -e "  rename <dir>         指定ディレクトリ内のファイルをdate modifiedで%05d形式にリネーム"
+    echo -e "  check <dir>          ファイル名がdate modifiedの順序で正しく命名されているかチェック"
     echo
     echo -e "${BOLD}説明:${RESET}"
     echo -e "  このスクリプトは接続されたビデオカメラデバイスを自動検出し、"
@@ -200,6 +283,7 @@ function show_help() {
 function main() {
     # Parse command line arguments
     local rename_only=false
+    local check_only=false
     local target_directory=""
 
     while [[ $# -gt 0 ]]; do
@@ -208,14 +292,25 @@ function main() {
                 show_help
                 exit 0
                 ;;
-            --rename)
+            rename)
                 rename_only=true
                 if [[ -n "$2" && "$2" != -* ]]; then
                     target_directory="$2"
                     shift
                 else
-                    echo -e "\033[91m❌ --rename オプションにはディレクトリパスが必要です\033[0m"
-                    echo -e "使用例: $0 --rename pink"
+                    echo -e "\033[91m❌ rename オプションにはディレクトリパスが必要です\033[0m"
+                    echo -e "使用例: $0 rename pink"
+                    exit 1
+                fi
+                ;;
+            check)
+                check_only=true
+                if [[ -n "$2" && "$2" != -* ]]; then
+                    target_directory="$2"
+                    shift
+                else
+                    echo -e "\033[91m❌ check オプションにはディレクトリパスが必要です\033[0m"
+                    echo -e "使用例: $0 check pink"
                     exit 1
                 fi
                 ;;
@@ -227,6 +322,25 @@ function main() {
         esac
         shift
     done
+
+    # チェックのみモード
+    if [[ "$check_only" == true ]]; then
+        if [[ ! -d "$target_directory" ]]; then
+            echo -e "\033[91m❌ ディレクトリが見つかりません: $target_directory\033[0m"
+            exit 1
+        fi
+
+        # ディレクトリ名からデバイス色を判定
+        local device_color="UNKNOWN"
+        if [[ "$target_directory" == "pink" || "$target_directory" == "./pink" ]]; then
+            device_color="PINK"
+        elif [[ "$target_directory" == "white" || "$target_directory" == "./white" ]]; then
+            device_color="WHITE"
+        fi
+
+        check_file_naming "$target_directory" "$device_color"
+        exit 0
+    fi
 
     # リネームのみモード
     if [[ "$rename_only" == true ]]; then
