@@ -48,12 +48,16 @@ function rename_files_by_date() {
     done < <(find "$target_folder" -type f -print0)
 
     # 変更時刻でソート
-    IFS=$'\n' sorted_files=($(sort -n <<< "${files_with_times[*]}"))
-    unset IFS
+    local sorted_files=()
+    if [[ ${#files_with_times[@]} -gt 0 ]]; then
+        IFS=$'\n' sorted_files=($(sort -n <<< "${files_with_times[*]}"))
+        unset IFS
+    fi
 
     # リネーム処理
     local counter=0
-    for entry in "${sorted_files[@]}"; do
+    if [[ ${#sorted_files[@]} -gt 0 ]]; then
+        for entry in "${sorted_files[@]}"; do
         # エントリーからファイルパスを抽出
         file_path="${entry#*:}"
         original_name=$(basename "$file_path")
@@ -70,7 +74,8 @@ function rename_files_by_date() {
         fi
 
         counter=$((counter + 1))
-    done
+        done
+    fi
 
     echo -e "${COLOR}${ICON} [$device_color]${RESET} ✨ ${GREEN}${counter}${RESET} ファイルのリネームが完了しました！"
 }
