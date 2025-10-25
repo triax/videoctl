@@ -12,6 +12,21 @@ SERIAL_PINK="6CD0502F3121"
 ICON_PINK="🐷"
 ICON_WHITE="🐻‍❄️"
 
+function on_end_notification() {
+    # If Darwin (macOS), use afplay
+    if [[ "$(uname)" == "Darwin" ]]; then
+        afplay /System/Library/Sounds/Glass.aiff
+    else
+        # Print beep sound for other systems
+        echo -e "\a"
+    fi
+}
+
+# Always chime when the standalone script terminates, regardless of the exit path
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    trap on_end_notification EXIT
+fi
+
 function get_device_info_by_serial() {
     serial=${1}
     info=$(system_profiler SPUSBDataType | awk -v RS='' "/Serial Number: $serial/")
